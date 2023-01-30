@@ -1,0 +1,270 @@
+---
+title: "MA304_Exploratory Data Analysis and Data Visualisation"
+subtitle: "Police data analysis"
+author: "2111317-Sumsil Arafin Pranta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+### Don't delete this setup code chunk from your file
+
+knitr::opts_chunk$set(warning = FALSE, message = FALSE ,echo = FALSE)
+  ## DON'T ALTER THIS: this is to prevent printing the code in your "html" file.
+
+# Extend the list below to load all the packages required for your analyses here:
+#===============================================================================
+library(lubridate)
+library(dsEssex)
+library(tidyverse)
+library(leaflet)
+library(ggmap)
+library(shiny)
+library(leaflet.extras)
+library(tidyr)
+library("ggplot2")
+library("dplyr")
+library("RColorBrewer")
+library("ggthemes")
+library("ggrepel")
+library("gridExtra")
+library("descr")
+library("car")
+library("plotly")
+library("viridis")
+
+# load the 'ted_talks' data
+#=========================
+Rawdata <- read.csv("~/Desktop/304/37-00049_UOF-P_2016_prepped.csv", header=TRUE)
+data(Rawdata)
+str(Rawdata)
+# delete the first row
+rowclean <- Rawdata[-c(1),] 
+rowclean
+#checking missing value and fill with NA
+any(is.na(rowclean))
+rowclean[rowclean == ""] <- NA
+data_with_NA <-rowclean
+any(is.na(data_with_NA))
+
+#Delete colum that has more than 60 percent of NA values
+noneed <- c()
+for(i in 1:ncol(data_with_NA)) {
+  if(length(which(is.na(data_with_NA[,i]))) > 0.6*nrow(data_with_NA)) noneed <- append(noneed,i) 
+}
+data_final <- data_with_NA[,-noneed]
+view(data_final)
+
+```
+
+
+## Introduction:
+Police offices across the United States have enlisted in National Justice Database, the first and biggest assortment of normalized police social information. A dataset was derived from the National Justice Database with the data from Dallas, Texas in 2016. So, this project gave an idea of the data of policing behavior, especially with the help of data visualization. The dataset consisted of 2383 entries with 39 unique variables. Mainly the analysis is done to find out the problem of racism in policing using different visualization techniques. Many factors that drive racial disparities can be found in this dataset, but we are going to pick some of the major reasons behind the problem.
+
+##Method:
+Data were preprocessed, cleaned, and with the RStudio and some of its visualizations power like(bar chart,pie chart, box plot,time series) data was analyzed.Also using ggplotly the plots were made interactive.
+
+##Data Preprocessing:
+This data set had a lot of missing values. So, the first challenge was to clean the data set.
+At the top, there were two header rows and 2nd row was removed at the beginning. After that, those missing values were filled with null values. Columns with most of the null values do not affect or give an error in most of the cases so columns with missing values over 60 percent were dropped after that.
+
+##Result
+
+##Number of male and female in Police
+A simple bar chart shows that there is a huge difference between male and female officers. In Dallas, Texas most of the Officers are male. There are 2383 total officers in Dallas, among them 240 is female officers and 2143 is a male officer. So from the bar chart, we can say that female officers is less almost 10% percent in Dallas 
+```{r}
+
+Bar <- ggplot(data_final, aes(OFFICER_GENDER))+
+  geom_bar(position = "stack",fill=c("mediumpurple4","indianred4"),width=0.5)+
+  theme_minimal()+
+  ggtitle('Police Gender Counts')
+
+ggplotly(Bar)
+```
+
+
+
+
+
+##Officer Race
+By using a pie chart and a bar chart we can say that we have six types of Officers. In the department, they have the white majority with the number 1470 and American Indians have only 8 people in the department. After white, 482 Hispanic people were in the second position. Also only  341 black, 55 Asians , and 27 others were in the police department.white is actually 61.69% percent in the police department which cleary shows that there is white supremacy in the police recruitment process.
+
+```{r}
+pie <- ggplot(data_final,aes(x=OFFICER_RACE, fill = OFFICER_RACE))+
+  geom_bar()+
+  theme(axis.line = element_blank(),
+        plot.title = element_text(hjust=0.6))
+
+ggplotly(pie)
+pi2 <- data_final %>% count(OFFICER_RACE) %>% arrange((desc(OFFICER_RACE))) %>%
+  mutate(percentage = n/sum(n) *100,
+  pos_pie = round(cumsum(percentage) - 0.5 * percentage, 2))
+ggplot(data=pi2) +
+  geom_col(mapping = aes(x="", y=percentage, fill = OFFICER_RACE)) +
+  coord_polar(theta = "y")+
+  geom_text(aes(x="", y= pos_pie, label = scales::percent(percentage, scale=1)))
+```
+
+
+
+## officer years on police 
+Using a density graph, we see that there is a huge number of people serving within the range of 0 to 5 years of experience. Then the number began to drop. But surprisingly the number increases with people doing job near 10 years. But the number of people with experiences over 15 years is significantly less.
+```{r}
+dens <- as.numeric(data_final$OFFICER_YEARS_ON_FORCE)
+den1<- ggplot(data_final, aes(x=dens)) + geom_density(fill="red",
+alpha=0.6)
+den_final <- den1 + ylab("Density of Officer Years On Force") + xlab("Years")
+ggplotly(den_final)
+
+
+```
+
+
+##
+By using a box plot, we see that officers with times tends to get injured and the numbers are more than uninjured with a median of 7.50 .They get injured mostly from 2 to 13 years.
+
+
+```{r}
+#boxplot 
+box_graph <- as.numeric(data_final$OFFICER_YEARS_ON_FORCE)
+box_2 <- ggplot(data_final, aes(x=OFFICER_INJURY, y=box_graph)) + xlab("Officer injury") + ylab("Officer years on force")
+Box_final <-box_2 + geom_boxplot(fill="yellowgreen", alpha=0.5)+ theme_bw() +
+theme(axis.text=element_text(face='bold', size = 10, angle = 36, hjust = 2))
+ggplotly(Box_final)
+```
+
+
+
+##SUBJECT_RACE
+Using a bar chart, it Is clear that black is the biggest suspect race in Dallas. Almost half of the chart with 55.94 percent, 1333 people were black in the subject race. But after that Hispanic people were in 2nd position with a percentage of 21.99% percent. Asian people were suspected only 5 times.
+
+
+```{r}
+
+pie_3 <- ggplot(data_final,aes(x=SUBJECT_RACE, fill = SUBJECT_RACE))+
+  geom_bar()+
+  theme(axis.line = element_blank(),
+        plot.title = element_text(hjust=0.6))
+
+ggplotly(pie_3)
+
+
+p2 <- data_final %>% count(SUBJECT_RACE) %>% arrange((desc(SUBJECT_RACE))) %>%
+  mutate(percentage = n/sum(n) *100,
+  pos_pie = round(cumsum(percentage) - 0.5 * percentage, 2))
+ggplot(data=p2) +
+  geom_col(mapping = aes(x="", y=percentage, fill = SUBJECT_RACE)) +
+  coord_polar(theta = "y")+
+  geom_text(aes(x="", y= pos_pie, label = scales::percent(percentage, scale=1)))
+
+
+
+
+```
+
+
+
+
+##RACE analysis
+
+Form the heatmap we can see that the number of white people deal with subject race black is the most. Almost  846 people were here. And black people arrested white people only 57 times . 
+
+```{r}
+frequency <- data_final %>%
+  group_by(SUBJECT_RACE, OFFICER_RACE) %>%
+  summarize(Freq=n())
+
+hetm <- ggplot(frequency, aes(x = SUBJECT_RACE, y = OFFICER_RACE, fill = Freq )) +scale_fill_gradientn(colors = hcl.colors(20, "RdYlGn")) +geom_tile()
+ggplotly(hetm)
+
+```
+
+##Race analysis
+Here in hour analysis Peaks were noticed between 17:00 and 20:00, when a large number of occurrences were reported, followed by 02:00, when approximately 150 instances were reported. The lowest was observed at 7:00 a.m.Also in 2016 march was the month where most of the crimes were recorded and December came to the lowest point.
+
+
+##incedent by by time
+```{r}
+##timeseris
+
+#datatype changes
+
+data_final$INCIDENT_DATE <- as.Date(data_final$INCIDENT_DATE, format = "%m/%d/%Y")
+data_final$INCIDENT_DATE <- gsub("00","20",data_final$INCIDENT_DATE)
+data_final$INCIDENT_DATE <- as.Date(data_final$INCIDENT_DATE, format = "%Y-%m-%d")
+data_final$INCIDENT_TIME <- format(strptime(data_final$INCIDENT_TIME, "%I:%M:%S %p"), "%H:%M:%S")
+data_final$INCIDENT_MONTH <- months(as.Date(data_final$INCIDENT_DATE))
+data_final$INC_MONTH <-format(data_final$INCIDENT_DATE,"%m")
+data_final$INCIDENT_HOUR <- as.numeric(substr(data_final$INCIDENT_TIME, 0, 2))
+data_final$INCIDENT_DAY <- wday(data_final$INCIDENT_DATE, label=TRUE)
+data_final$INC_HOUR <- substr(data_final$INCIDENT_TIME, 0, 2)
+data_final$INC_DATE <- substr(data_final$INCIDENT_DATE, 9, 10)
+
+## Create group of datas:
+
+data_final_year <-  data_final %>%
+  group_by(INCIDENT_DATE,INCIDENT_MONTH,INCIDENT_DAY) %>%
+  summarize(count = n())
+
+data_final_month <-  data_final %>%
+  group_by(INC_MONTH) %>%
+  summarize(count = n())
+
+data_final_day <-  data_final %>%
+  group_by(INCIDENT_DAY,INCIDENT_HOUR) %>%
+  summarize(count = n())
+
+data_final$INC_HOUR <- substr(data_final$INCIDENT_TIME, 0, 2)
+
+data_final  %>% group_by(INC_HOUR) %>%
+  summarize(avg =n()) -> data_final_hour_n
+
+
+year_inc <- ggplot(data = data_final_year, aes(INCIDENT_DATE, count)) +    geom_line(size=0.5, col="gray") +
+geom_smooth(method = "loess", color = "firebrick4", span = 1/5) + theme_bw() + labs(x="Months ", y= "INCIDENT COUNTS", title=" Year vs Incidents")
+
+
+month_inc <- ggplot(data_final_month, aes(x=INC_MONTH, y =count, group=1))+geom_area(alpha=.4 , position="identity" , fill="lightseagreen") + geom_line()  + geom_line( size = 1,colour ="darkslategray") + labs(x="MONTHS OF 2016", y= "INCIDENT COUNTS", title=" Months vs  Incident Rates")  + theme_bw()
+
+
+hour_inc <- ggplot(data_final_hour_n, aes(x = INC_HOUR, y = avg, group = "count")) +geom_area(alpha=.4 , position="identity" , fill="tan1")+ geom_line( size = 1, colour = "orange") + labs(x="HOURS IN A DAY", y= "INCIDENT COUNTS", title=" Hours vs  Incident Rates")+ theme_bw() +
+theme(axis.text.x=element_text(angle=-90, vjust=0.5)) +
+
+  labs(x = "Hour of the day", y = "count") + theme_bw()
+
+r3 <- ggplot(data_final_year, aes(count)) +
+  geom_density(alpha = 0.5, colour = "black", fill ="darkslateblue")+ labs(x="Incident counts", y= "Density", title=" Distribuion of incident rates") + theme_bw()
+
+ggplotly(month_inc)
+ggplotly(hour_inc)
+ggplotly(r3)
+
+```
+
+
+
+MAP: From the map we can see that number of arrest in incident reason is the hihgest and we can see were the incidents happen, looks like it is the central part were most of the arrest happend.
+
+
+
+```{r}
+pal <- 
+   colorFactor(palette = "Spectral", 
+               levels = data_final$INCIDENT_REASON)
+leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = data_final , lng=as.numeric(data_final$LOCATION_LONGITUDE), lat=as.numeric(data_final$LOCATION_LATITUDE), popup = ~(data_final$INCIDENT_REASON),color = ~pal(data_final$INCIDENT_REASON),) %>% 
+addLegend(pal = pal, 
+            values = unique(data_final$INCIDENT_REASON),
+            # opacity of .5, title of Sector, and position of topright
+            opacity = 0.5, title = "Subject Race", position = "topright")
+
+```
+
+```{r}
+```
+
+
+
+
+## Discussion
+In the end we can say that there were a significant number of male police officer in Dallas. Also white people are the most in numbers they have arrested the black people most.The number of incident happend most in march and went down near to hundred in December. Also incident report were most in between 17.00 to 20.00.Also from the map we can see the places of diffrect incident reasons.
