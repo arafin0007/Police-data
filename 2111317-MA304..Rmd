@@ -34,7 +34,7 @@ library("viridis")
 
 # load the 'ted_talks' data
 #=========================
-Rawdata <- read.csv("~/Desktop/304/37-00049_UOF-P_2016_prepped.csv", header=TRUE)
+Rawdata <- read.csv("/Users/arafin/Desktop/ALL Projects/Police-data/37-00049_UOF-P_2016_prepped.csv", header=TRUE)
 data(Rawdata)
 str(Rawdata)
 # delete the first row
